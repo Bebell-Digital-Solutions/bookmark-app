@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bookmark Tool</title>
+  <style>
+    body {
+      font-family: Poppins, sans-serif;
+      margin: 150px;
+      max-width: 100%;
+    }
+    #bookmark-tool {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    #bookmarks-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+      margin-top: 20px;
+      font-size: 14px;
+    }
+    .bookmark {
+      position: relative; /* Para posicionar el ícono "X" */
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      text-align: center;
+      padding: 0px;
+      padding-bottom: 8px;
+    }
+    .bookmark img {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      border-radius: 0px;
+    }
+    .bookmark a {
+      text-decoration: none; /* Quitar subrayado del enlace */
+      color: inherit; /* Heredar el color del texto */
+    }
+    input {
+      padding: 15px 20px;
+      border-radius: 50px;
+      margin: 5px 0;
+      width: 100%;
+      box-sizing: border-box;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button {
+      background-color: #df1783;
+      color: white;
+      border: none;
+      padding: 15px 20px;
+      border-radius: 50px;
+      margin: 5px 0;
+      width: 100%;
+      box-sizing: border-box;
+      font-size: 18px;
+      cursor: pointer;
+    }
+    .bookmark p {
+      margin: 5px 0;
+    }
+    .delete-icon {
+      position: absolute; /* Posicionar el ícono en la esquina superior izquierda */
+      top: 5px;
+      left: 5px;
+      cursor: pointer;
+      font-size: 15px;
+      color: #df1783;
+      background-color: white;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+    .delete-icon:hover {
+      color: #b31265;
+      background-color: #f0f0f0;
+    }
+    .dropdown {
+      position: relative;
+      display: inline-block;
+      margin-top: 10px;
+    }
+    .dropdown-button {
+      background-color: #df1783;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 50px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .dropdown-button:hover {
+      background-color: #b31265;
+    }
+    .dropdown-content {
+      display: none; /* Oculto por defecto */
+      position: absolute;
+      background-color: white;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.1);
+      z-index: 1;
+      padding: 10px;
+      max-height: 200px;
+      overflow-y: auto; /* Scroll si hay muchas etiquetas */
+    }
+    .dropdown-content .tag-button {
+      display: block;
+      background-color: #df1783;
+      color: white;
+      border: none;
+      padding: 5px 15px;
+      border-radius: 50px;
+      font-size: 12px;
+      cursor: pointer;
+      margin: 5px 0;
+      text-align: left;
+      width: 100%;
+    }
+    .dropdown-content .tag-button:hover {
+      background-color: #b31265;
+    }
+    /* Mostrar el dropdown al hacer clic */
+    .dropdown.active .dropdown-content {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div id="bookmark-tool">
+    <h1>Fuentes Favoritos</h1>
+    <p>Guarda y organiza tus enlaces favoritos de manera fácil y rápida.<br>N.B. Asegúrate de que tu enlace tenga "https://" al inicio</p>
+    <input type="text" id="url-input" placeholder="Ingresar Dirección URL">
+    <input type="text" id="tags-input" placeholder="Agregar Etiquetas (separadas por coma)">
+    <button id="save-button">Guardar Fuente</button>
+    <div class="dropdown">
+      <button class="dropdown-button">Mostrar Etiquetas</button>
+      <div id="tags-container" class="dropdown-content"></div>
+    </div>
+    <div id="bookmarks-container"></div>
+  </div>
+
+  <script>
+    // Array to store bookmarks
+    let bookmarks = JSON.parse(localStorage.getItem("bookmarks")) || [];
+
+    // Function to save a bookmark
+    document.getElementById("save-button").addEventListener("click", function () {
+      const url = document.getElementById("url-input").value;
+      const tags = document.getElementById("tags-input").value
+        .split(",")
+        .map(tag => tag.trim())
+        .filter(tag => tag.length > 0); // Eliminar etiquetas vacías
+
+      // Si no hay etiquetas, agregar "blank" como etiqueta predeterminada
+      if (tags.length === 0) {
+        tags.push("blank");
+      }
+
+      if (!url) {
+        alert("¡Error! Por favor ingrese una URL.");
+        return;
+      }
+
+      // Check for duplicate URLs
+      if (bookmarks.some(bookmark => bookmark.url === url)) {
+        alert("Este enlace ya ha sido guardado.");
+        return;
+      }
+
+      // Fetch thumbnail using Link Preview API
+      const apiKey = "cf897b0182aba8e0a03631fb87448236";
+      fetch(`https://api.linkpreview.net/?key=${apiKey}&q=${url}`)
+        .then(response => response.json())
+        .then(data => {
+          const bookmark = {
+            url: url,
+            thumbnail: data.image || "https://via.placeholder.com/300x169?text=No+Thumbnail",
+            tags: tags,
+            date: new Date()
+          };
+
+          // Add bookmark to the array
+          bookmarks.push(bookmark);
+
+          // Save bookmarks to localStorage
+          localStorage.setItem("bookmarks", JSON.stringify(bookmarks));
+
+          // Clear input fields
+          document.getElementById("url-input").value = "";
+          document.getElementById("tags-input").value = "";
+
+          // Display bookmarks and tags
+          displayBookmarks();
+          displayTags();
+
+          // Trigger confetti
+          triggerConfetti();
+        })
+        .catch(error => {
+          console.error("Error fetching thumbnail:", error);
+          alert("Error fetching thumbnail. Please try again.");
+        });
+    });
+
+    // Function to display bookmarks
+    function displayBookmarks(filteredBookmarks = bookmarks) {
+      const container = document.getElementById("bookmarks-container");
+      container.innerHTML = ""; // Clear the container
+
+      // Sort bookmarks by date (newest first)
+      filteredBookmarks.sort((a, b) => b.date - a.date);
+
+      filteredBookmarks.forEach((bookmark, index) => {
+        const bookmarkElement = document.createElement("div");
+        bookmarkElement.className = "bookmark";
+        bookmarkElement.innerHTML = `
+          <span class="delete-icon" onclick="deleteBookmark(${index})">×</span>
+          <a href="${bookmark.url}" target="_blank">
+            <img src="${bookmark.thumbnail}" alt="${bookmark.url}">
+            <p>${bookmark.url}</p>
+            <p><strong>Tags:</strong> ${bookmark.tags.join(", ")}</p>
+            <p><strong>Date:</strong> ${bookmark.date.toLocaleString()}</p>
+          </a>
+        `;
+        container.appendChild(bookmarkElement);
+      });
+    }
+
+    // Function to delete a bookmark
+    function deleteBookmark(index) {
+      bookmarks.splice(index, 1); // Remove the bookmark from the array
+      localStorage.setItem("bookmarks", JSON.stringify(bookmarks)); // Update localStorage
+      displayBookmarks(); // Refresh the display
+      displayTags(); // Update the tag buttons
+    }
+
+    // Function to display tags in the dropdown
+    function displayTags() {
+      const tagsContainer = document.getElementById("tags-container");
+      tagsContainer.innerHTML = ""; // Clear the container
+
+      // Add the "Todos" tag
+      const allButton = document.createElement("button");
+      allButton.className = "tag-button";
+      allButton.textContent = "Todos";
+      allButton.addEventListener("click", () => {
+        displayBookmarks(); // Show all bookmarks
+        document.querySelector(".dropdown").classList.remove("active"); // Hide dropdown
+      });
+      tagsContainer.appendChild(allButton);
+
+      // Get all unique tags
+      const allTags = [...new Set(bookmarks.flatMap(bookmark => bookmark.tags))];
+
+      // Create a button for each tag
+      allTags.forEach(tag => {
+        const tagButton = document.createElement("button");
+        tagButton.className = "tag-button";
+        tagButton.textContent = tag;
+        tagButton.addEventListener("click", () => {
+          filterByTag(tag);
+          document.querySelector(".dropdown").classList.remove("active"); // Hide dropdown after selecting a tag
+        });
+        tagsContainer.appendChild(tagButton);
+      });
+    }
+
+    // Function to filter bookmarks by tag
+    function filterByTag(tag) {
+      const filteredBookmarks = bookmarks.filter(bookmark =>
+        bookmark.tags.includes(tag)
+      );
+      displayBookmarks(filteredBookmarks);
+    }
+
+    // Mostrar/ocultar el dropdown
+    document.querySelector(".dropdown-button").addEventListener("click", function () {
+      const dropdown = document.querySelector(".dropdown");
+      dropdown.classList.toggle("active");
+    });
+
+    // Load bookmarks and tags when the page loads
+    displayBookmarks();
+    displayTags();
+
+    // Confetti function
+    function triggerConfetti() {
+      confetti({
+        particleCount: 300,  // Number of confetti pieces
+        spread: 90,         // Spread of the confetti
+        origin: {
+          x: 0.5,           // Horizontal center (50% of the screen)
+          y: 0.5            // Vertical center (50% of the screen)
+        }
+      });
+    }
+  </script>
+
+  <!-- Confetti Script -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+</body>
+</html>
