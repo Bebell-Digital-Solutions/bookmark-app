@@ -4,10 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bookmark Tool</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome Icons -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
   <style>
     body {
-      font-family: Poppins, sans-serif;
-      margin: 150px;
+      font-family: 'Poppins', sans-serif;
+      margin: 20px;
       max-width: 100%;
     }
     #bookmark-tool {
@@ -22,22 +26,22 @@
       font-size: 14px;
     }
     .bookmark {
-      position: relative; /* Para posicionar el ícono "X" */
+      position: relative;
       border: 1px solid #ccc;
       border-radius: 5px;
       text-align: center;
-      padding: 0px;
+      padding: 0;
       padding-bottom: 8px;
     }
     .bookmark img {
       width: 100%;
       aspect-ratio: 16 / 9;
       object-fit: cover;
-      border-radius: 0px;
+      border-radius: 0;
     }
     .bookmark a {
-      text-decoration: none; /* Quitar subrayado del enlace */
-      color: inherit; /* Heredar el color del texto */
+      text-decoration: none;
+      color: inherit;
     }
     input {
       padding: 15px 20px;
@@ -47,6 +51,7 @@
       box-sizing: border-box;
       font-size: 16px;
       cursor: pointer;
+      border: 1px solid #ccc;
     }
     button {
       background-color: #df1783;
@@ -64,7 +69,7 @@
       margin: 5px 0;
     }
     .delete-icon {
-      position: absolute; /* Posicionar el ícono en la esquina superior izquierda */
+      position: absolute;
       top: 5px;
       left: 5px;
       cursor: pointer;
@@ -101,7 +106,7 @@
       background-color: #b31265;
     }
     .dropdown-content {
-      display: none; /* Oculto por defecto */
+      display: none;
       position: absolute;
       background-color: white;
       border: 1px solid #ccc;
@@ -110,7 +115,7 @@
       z-index: 1;
       padding: 10px;
       max-height: 200px;
-      overflow-y: auto; /* Scroll si hay muchas etiquetas */
+      overflow-y: auto;
     }
     .dropdown-content .tag-button {
       display: block;
@@ -128,7 +133,6 @@
     .dropdown-content .tag-button:hover {
       background-color: #b31265;
     }
-    /* Mostrar el dropdown al hacer clic */
     .dropdown.active .dropdown-content {
       display: block;
     }
@@ -158,9 +162,8 @@
       const tags = document.getElementById("tags-input").value
         .split(",")
         .map(tag => tag.trim())
-        .filter(tag => tag.length > 0); // Eliminar etiquetas vacías
+        .filter(tag => tag.length > 0);
 
-      // Si no hay etiquetas, agregar "blank" como etiqueta predeterminada
       if (tags.length === 0) {
         tags.push("blank");
       }
@@ -170,7 +173,6 @@
         return;
       }
 
-      // Check for duplicate URLs
       if (bookmarks.some(bookmark => bookmark.url === url)) {
         alert("Este enlace ya ha sido guardado.");
         return;
@@ -188,37 +190,37 @@
             date: new Date()
           };
 
-          // Add bookmark to the array
           bookmarks.push(bookmark);
-
-          // Save bookmarks to localStorage
           localStorage.setItem("bookmarks", JSON.stringify(bookmarks));
-
-          // Clear input fields
           document.getElementById("url-input").value = "";
           document.getElementById("tags-input").value = "";
-
-          // Display bookmarks and tags
           displayBookmarks();
           displayTags();
-
-          // Trigger confetti
           triggerConfetti();
         })
         .catch(error => {
           console.error("Error fetching thumbnail:", error);
-          alert("Error fetching thumbnail. Please try again.");
+          const bookmark = {
+            url: url,
+            thumbnail: "https://via.placeholder.com/300x169?text=No+Thumbnail",
+            tags: tags,
+            date: new Date()
+          };
+          bookmarks.push(bookmark);
+          localStorage.setItem("bookmarks", JSON.stringify(bookmarks));
+          document.getElementById("url-input").value = "";
+          document.getElementById("tags-input").value = "";
+          displayBookmarks();
+          displayTags();
+          triggerConfetti();
         });
     });
 
     // Function to display bookmarks
     function displayBookmarks(filteredBookmarks = bookmarks) {
       const container = document.getElementById("bookmarks-container");
-      container.innerHTML = ""; // Clear the container
-
-      // Sort bookmarks by date (newest first)
+      container.innerHTML = "";
       filteredBookmarks.sort((a, b) => b.date - a.date);
-
       filteredBookmarks.forEach((bookmark, index) => {
         const bookmarkElement = document.createElement("div");
         bookmarkElement.className = "bookmark";
@@ -237,38 +239,32 @@
 
     // Function to delete a bookmark
     function deleteBookmark(index) {
-      bookmarks.splice(index, 1); // Remove the bookmark from the array
-      localStorage.setItem("bookmarks", JSON.stringify(bookmarks)); // Update localStorage
-      displayBookmarks(); // Refresh the display
-      displayTags(); // Update the tag buttons
+      bookmarks.splice(index, 1);
+      localStorage.setItem("bookmarks", JSON.stringify(bookmarks));
+      displayBookmarks();
+      displayTags();
     }
 
     // Function to display tags in the dropdown
     function displayTags() {
       const tagsContainer = document.getElementById("tags-container");
-      tagsContainer.innerHTML = ""; // Clear the container
-
-      // Add the "Todos" tag
+      tagsContainer.innerHTML = "";
       const allButton = document.createElement("button");
       allButton.className = "tag-button";
       allButton.textContent = "Todos";
       allButton.addEventListener("click", () => {
-        displayBookmarks(); // Show all bookmarks
-        document.querySelector(".dropdown").classList.remove("active"); // Hide dropdown
+        displayBookmarks();
+        document.querySelector(".dropdown").classList.remove("active");
       });
       tagsContainer.appendChild(allButton);
-
-      // Get all unique tags
       const allTags = [...new Set(bookmarks.flatMap(bookmark => bookmark.tags))];
-
-      // Create a button for each tag
       allTags.forEach(tag => {
         const tagButton = document.createElement("button");
         tagButton.className = "tag-button";
         tagButton.textContent = tag;
         tagButton.addEventListener("click", () => {
           filterByTag(tag);
-          document.querySelector(".dropdown").classList.remove("active"); // Hide dropdown after selecting a tag
+          document.querySelector(".dropdown").classList.remove("active");
         });
         tagsContainer.appendChild(tagButton);
       });
@@ -282,7 +278,7 @@
       displayBookmarks(filteredBookmarks);
     }
 
-    // Mostrar/ocultar el dropdown
+    // Show/hide dropdown
     document.querySelector(".dropdown-button").addEventListener("click", function () {
       const dropdown = document.querySelector(".dropdown");
       dropdown.classList.toggle("active");
@@ -295,11 +291,11 @@
     // Confetti function
     function triggerConfetti() {
       confetti({
-        particleCount: 300,  // Number of confetti pieces
-        spread: 90,         // Spread of the confetti
+        particleCount: 300,
+        spread: 90,
         origin: {
-          x: 0.5,           // Horizontal center (50% of the screen)
-          y: 0.5            // Vertical center (50% of the screen)
+          x: 0.5,
+          y: 0.5
         }
       });
     }
